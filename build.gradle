@@ -20,15 +20,16 @@ jar{
         attributes 'Can-Redefine-Classes': 'true'
         attributes 'Can-Retransform-Classes': 'true'
     }
-    from {
-        configurations.runtime.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
 
-        configurations.compile.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
-    }
+//    from {
+//        configurations.runtime.collect {
+//            it.isDirectory() ? it : zipTree(it)
+//        }
+//
+//        configurations.compile.collect {
+//            it.isDirectory() ? it : zipTree(it)
+//        }
+//    }
     // exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
 }
 repositories {

@@ -77,7 +77,7 @@ public class ByteCodePVars extends ByteCodeP {
                 importLogPack(cc);
                 forMethods(tf.getMethodAccessVars());
                 b = cc.toBytecode();
-                rewrite(cc);
+
             } catch (CannotCompileException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -93,17 +93,14 @@ public class ByteCodePVars extends ByteCodeP {
 
 
     /**
-     * rewrite the bytecode file
+     * apply the modification to byte code in the loader
+     * since the inner class will not invoke the .tobytecode() method
+     * it should use this instead.
      */
     private void rewrite(CtClass ctClass) {
         try {
-//            ctClass.writeFile(tc.getOutputPath());
-            ctClass.writeFile();
+            ctClass.toClass();
         } catch (CannotCompileException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NotFoundException e) {
             e.printStackTrace();
         }
     }
