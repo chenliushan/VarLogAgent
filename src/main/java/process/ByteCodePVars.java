@@ -5,8 +5,8 @@ import javassist.CtBehavior;
 import javassist.CtClass;
 import javassist.NotFoundException;
 import polyu_af.models.LineAccessVars;
-import polyu_af.models.MethodAccessVars;
 import polyu_af.models.MyExp;
+import polyu_af.models.MyMethod;
 import polyu_af.models.TargetFile;
 import polyu_af.utils.FileUtils;
 
@@ -75,14 +75,14 @@ public class ByteCodePVars extends ByteCodeP {
             try {
                 cc = poolParent.makeClass(new java.io.ByteArrayInputStream(b));
                 importLogPack(cc);
-                forMethods(tf.getMethodAccessVars());
+                forMethods(tf.getMyMethodAccessVars());
                 b = cc.toBytecode();
 
             } catch (CannotCompileException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
+            }  finally {
                 if (cc != null) {
                     cc.detach();
                 }
@@ -100,13 +100,15 @@ public class ByteCodePVars extends ByteCodeP {
     private void rewrite(CtClass ctClass) {
         try {
             ctClass.toClass();
+//            ctClass.writeFile();
+
         } catch (CannotCompileException e) {
             e.printStackTrace();
         }
     }
 
-    private void forMethods(List<MethodAccessVars> accessVar4MethodList) {
-        for (MethodAccessVars methodAccessVar : accessVar4MethodList) {
+    private void forMethods(List<MyMethod> accessVar4MethodList) {
+        for (MyMethod methodAccessVar : accessVar4MethodList) {
             isNestedMethod = false;
             //find the method in the target bytecode file
             CtBehavior mainMethod = findTMethod(methodAccessVar);
@@ -121,6 +123,7 @@ public class ByteCodePVars extends ByteCodeP {
                 }
             }
         }
+
     }
 
     /**
@@ -129,7 +132,7 @@ public class ByteCodePVars extends ByteCodeP {
      * @param methodAccessVar
      * @return
      */
-    private CtBehavior findTMethod(MethodAccessVars methodAccessVar) {
+    private CtBehavior findTMethod(MyMethod methodAccessVar) {
         CtBehavior mainMethod = null;
         List<CtClass> ps = methodAccessVar.getParams(poolParent);
         CtClass[] prams = ps.toArray(new CtClass[ps.size()]);
@@ -179,6 +182,7 @@ public class ByteCodePVars extends ByteCodeP {
     private void logVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
 
         for (LineAccessVars accessVars : varsList) {
+
             try {
                 mainMethod.insertAt(accessVars.getLocation(), lo.getLineDivider());
                 for (MyExp var : accessVars.getVarsList()) {
