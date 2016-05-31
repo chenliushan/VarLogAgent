@@ -41,7 +41,7 @@ public class ByteCodePVars extends ByteCodeP {
      * get all the needed data at once
      */
     private void getTargetFiles() {
-        this.tfList = FileUtils.json2Obj();
+        this.tfList = FileUtils.json2TfList();
         System.out.println("First step tmp output is read ...");
     }
 
@@ -51,8 +51,8 @@ public class ByteCodePVars extends ByteCodeP {
     private TargetFile getCurrentTF(String className) {
         if (tfList != null) {
             for (TargetFile tf : tfList) {
-                System.out.println("getDirAndFileName:"+tf.getDirAndFileName());
                 if (tf.getDirAndFileName().equals(className)) {
+                    System.out.println("className:" + tf.getDirAndFileName() + " is modified ...");
                     return tf;
                 }
             }
