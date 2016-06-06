@@ -5,7 +5,7 @@ import javassist.CtBehavior;
 import javassist.CtClass;
 import javassist.NotFoundException;
 import polyu_af.models.LineAccessVars;
-import polyu_af.models.MyExp;
+import polyu_af.models.MyExpString;
 import polyu_af.models.MyMethod;
 import polyu_af.models.TargetFile;
 import polyu_af.utils.FileUtils;
@@ -77,12 +77,12 @@ public class ByteCodePVars extends ByteCodeP {
                 importLogPack(cc);
                 forMethods(tf.getMyMethodAccessVars());
                 b = cc.toBytecode();
-
+//                cc.writeFile();
             } catch (CannotCompileException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
-            }  finally {
+            } finally {
                 if (cc != null) {
                     cc.detach();
                 }
@@ -180,25 +180,52 @@ public class ByteCodePVars extends ByteCodeP {
      * @param mainMethod the method get from bytecode file
      */
     private void logVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
-
+        String qname = getMethodQualifyName(mainMethod);
         for (LineAccessVars accessVars : varsList) {
-
+            int location = accessVars.getLocation();
             try {
-                mainMethod.insertAt(accessVars.getLocation(), lo.getLineDivider());
-                for (MyExp var : accessVars.getVarsList()) {
+                mainMethod.insertAt(location, lo.endLine(location));
+                for (MyExpString var : accessVars.getVarsList()) {
                     try {
-                        mainMethod.insertAt(accessVars.getLocation(), lo.logValStatement(var.getExpVar()));
+                        mainMethod.insertAt(location, lo.logValStatement(var.getExpVar()));
                     } catch (CannotCompileException e) {
-                        mainMethod.insertAt(accessVars.getLocation(), lo.logNInitStatement(var.getExpVar()));
-                        System.err.println("CannotCompileException: location:" + accessVars.getLocation() + "var:" + var);
+                        mainMethod.insertAt(location, lo.logNInitStatement(var.getExpVar()));
+                        System.err.println("CannotCompileException: location:" + accessVars.getLocation() + "var:" + lo.logValNotNullStatement(var.getExpVar()));
                     }
-
                 }
+                mainMethod.insertAt(location, lo.startLine(location, qname));
             } catch (CannotCompileException e) {
-                System.err.println("location:" + accessVars.getLocation() + "vars:" + accessVars.getVarsList());
+                System.err.println("location:" + location + "vars:" + accessVars.getVarsList());
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * getMethodQualifyName
+     *
+     * @param method
+     * @return
+     */
+    private String getMethodQualifyName(CtBehavior method) {
+        StringBuilder sb = new StringBuilder(method.getDeclaringClass().getName());
+        sb.append("#");
+        sb.append(method.getName());
+        sb.append("(");
+        try {
+            CtClass[] methodParameterTypes = method.getParameterTypes();
+            for (int i = 0; i < methodParameterTypes.length; i++) {
+                sb.append(methodParameterTypes[i].getName());
+                sb.append(",");
+            }
+            if (sb.toString().endsWith(",")) {
+                sb.deleteCharAt(sb.length() - 1);
+            }
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+        }
+        sb.append(")");
+        return sb.toString();
     }
 
     /**
@@ -210,26 +237,26 @@ public class ByteCodePVars extends ByteCodeP {
     private void logNestedCVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
         //for very 'line' in the method
         for (LineAccessVars accessVars : varsList) {
+            int location = accessVars.getLocation();
             try {
-                mainMethod.insertAt(accessVars.getLocation(), lo.getLineDivider());
+                mainMethod.insertAt(location, lo.endLine(location));
                 //for every var that is accessible in the line
-                for (MyExp var : accessVars.getVarsList()) {
+                for (MyExpString var : accessVars.getVarsList()) {
 
                     try {
-                        mainMethod.insertAt(accessVars.getLocation(), lo.logConStatement(var.getExpVar(), tf.getQualifyFileName()));
+                        mainMethod.insertAt(location, lo.logConStatement(var.getExpVar(), tf.getQualifyFileName()));
                     } catch (CannotCompileException e) {
                         try {
-                            mainMethod.insertAt(accessVars.getLocation(), lo.logValStatement(var.getExpVar()));
+                            mainMethod.insertAt(location, lo.logValStatement(var.getExpVar()));
                         } catch (CannotCompileException e1) {
-                            mainMethod.insertAt(accessVars.getLocation(), lo.logNInitStatement(var.getExpVar()));
+                            mainMethod.insertAt(location, lo.logNInitStatement(var.getExpVar()));
                             System.err.println(" Nested CannotCompileException: location:"
-                                    + accessVars.getLocation() + "var:"
-                                    + "." + var.getExpVar());
+                                    + location + "var:" + "." + var.getExpVar());
                         }
                     }
                 }
             } catch (CannotCompileException e) {
-                System.err.println("Nested location:" + accessVars.getLocation());
+                System.err.println("Nested location:" + location);
                 e.printStackTrace();
             }
         }
