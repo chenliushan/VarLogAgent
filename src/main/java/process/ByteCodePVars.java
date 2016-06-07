@@ -82,7 +82,7 @@ public class ByteCodePVars extends ByteCodeP {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
+            }finally {
                 if (cc != null) {
                     cc.detach();
                 }
@@ -189,13 +189,19 @@ public class ByteCodePVars extends ByteCodeP {
                     try {
                         mainMethod.insertAt(location, lo.logValStatement(var.getExpVar()));
                     } catch (CannotCompileException e) {
-                        mainMethod.insertAt(location, lo.logNInitStatement(var.getExpVar()));
-                        System.err.println("CannotCompileException: location:" + accessVars.getLocation() + "var:" + lo.logValNotNullStatement(var.getExpVar()));
+                        try{
+                            mainMethod.insertAt(location, lo.logNInitStatement(var.getExpVar()));
+                            System.err.println("CannotCompileException: location:" + accessVars.getLocation() + "var:" + lo.logValStatement(var.getExpVar()));
+
+                        }catch (CannotCompileException e1) {
+                            System.err.println("location:" + location + "log:" +lo.logNInitStatement(var.getExpVar()));
+                            e1.printStackTrace();
+                        }
                     }
                 }
                 mainMethod.insertAt(location, lo.startLine(location, qname));
             } catch (CannotCompileException e) {
-                System.err.println("location:" + location + "vars:" + accessVars.getVarsList());
+                System.err.println("location:" + location + "log:" + lo.startLine(location, qname)+"||"+lo.endLine(location));
                 e.printStackTrace();
             }
         }
@@ -251,7 +257,7 @@ public class ByteCodePVars extends ByteCodeP {
                         } catch (CannotCompileException e1) {
                             mainMethod.insertAt(location, lo.logNInitStatement(var.getExpVar()));
                             System.err.println(" Nested CannotCompileException: location:"
-                                    + location + "var:" + "." + var.getExpVar());
+                                    + location + "var:" + "." + lo.logValStatement(var.getExpVar())+"||"+lo.logConStatement(var.getExpVar(), tf.getQualifyFileName()));
                         }
                     }
                 }

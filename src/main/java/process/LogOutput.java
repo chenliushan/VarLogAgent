@@ -35,9 +35,13 @@ public class LogOutput {
     }
 
     public String logValStatement(String varName) {
+        String varNameString=varName;
+        if(varName.contains("\"")){
+            varNameString= varName.replace("\"","");
+        }
         StringBuilder sb=new StringBuilder(loggerName);
         sb.append(".info(\"" );
-        sb.append(varName);
+        sb.append(varNameString);
         sb.append(":\"+(");
         sb.append(varName);
         sb.append( "));");
