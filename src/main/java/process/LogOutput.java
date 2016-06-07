@@ -50,10 +50,19 @@ public class LogOutput {
     }
 
     public String logValNotNullStatement(String varName) {
-        StringBuilder sb = new StringBuilder("if(n!=null){");
-        sb.append(logValStatement(varName));
-        sb.append("}");
-        return sb.toString();
+        int dotIdx=varName.indexOf(".");
+        if(dotIdx>0){
+            String pre=varName.substring(0,dotIdx);
+            StringBuilder sb = new StringBuilder("if(");
+            sb.append(pre);
+            sb.append("!=null){");
+            sb.append(logValStatement(varName));
+            sb.append("}");
+            return sb.toString();
+        }else{
+            return logValStatement(varName);
+        }
+
 //        return loggerName+".info(\"" + varName + ":\"+(" + getFirstVar(varName) + "==null? \"null\" :"+varName+"));";
     }
 

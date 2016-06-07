@@ -1,9 +1,7 @@
 package process;
 
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtField;
+import javassist.*;
+import javassist.bytecode.analysis.ControlFlow;
 
 /**
  * Created by liushanchen on 16/5/23.
@@ -54,6 +52,16 @@ public abstract class ByteCodeP {
             e.printStackTrace();
         }
     }
+
+//    protected void declareControlFlow(CtMethod cm) {
+//        try {
+//            ControlFlow cf = new ControlFlow(cm);
+//
+//            cc.addField(field);
+//        } catch (CannotCompileException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 
 }

@@ -41,12 +41,14 @@ public class ByteCodePVars extends ByteCodeP {
      * get all the needed data at once
      */
     private void getTargetFiles() {
+        /*read the accessible vars from the json file*/
         this.tfList = FileUtils.json2TfList();
         System.out.println("First step tmp output is read ...");
     }
 
     /**
-     * get all the needed data at once
+     * get the accessible vars of the class to be transform
+     * and set the TargetFile tf accroding to the current className
      */
     private TargetFile getCurrentTF(String className) {
         if (tfList != null) {
@@ -82,7 +84,7 @@ public class ByteCodePVars extends ByteCodeP {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
-            }finally {
+            } finally {
                 if (cc != null) {
                     cc.detach();
                 }
@@ -134,8 +136,12 @@ public class ByteCodePVars extends ByteCodeP {
      */
     private CtBehavior findTMethod(MyMethod methodAccessVar) {
         CtBehavior mainMethod = null;
+//        System.out.println("inside findTMethod ...");
+
         List<CtClass> ps = methodAccessVar.getParams(poolParent);
         CtClass[] prams = ps.toArray(new CtClass[ps.size()]);
+//        System.out.println(" getParams ...");
+
         if (tf.getFileName().equals(methodAccessVar.getMethodName())) {
             try {
                 mainMethod = cc.getDeclaredConstructor(prams);
@@ -146,30 +152,44 @@ public class ByteCodePVars extends ByteCodeP {
             try {
                 mainMethod = cc.getDeclaredMethod(methodAccessVar.getMethodName(), prams);
             } catch (NotFoundException e) {
-                try {
-                    CtClass[] nccs = cc.getNestedClasses();
-                    //find the first method has that name and paras in nested classes
-                    for (int i = 0; i < nccs.length; i++) {
-                        try {
-                            mainMethod = nccs[i].getDeclaredMethod(methodAccessVar.getMethodName(), prams);
-                        } catch (NotFoundException e1) {
-                            continue;
-                        }
-                        if (mainMethod != null) {
-                            isNestedMethod = true;
-                            declareLogger(nccs[i]);
-                            logNestedCVarValue(methodAccessVar.getVarsList(), mainMethod);
-                            rewrite(nccs[i]);
-                            break;
-                        }
-                    }
-                } catch (NotFoundException e1) {
-                    e1.printStackTrace();
-                }
-
+                System.out.println(" method: " + methodAccessVar.getMethodName() + "is not found. May be in the nested class.");
+//                processNestedMethod(methodAccessVar,prams);
             }
         }
+//        System.out.println(" end find method ...");
+
         return mainMethod;
+    }
+
+    /**
+     * find the target method in the nested class and insert log in that method
+     *
+     * @param methodAccessVar
+     * @param prams
+     */
+    private void processNestedMethod(MyMethod methodAccessVar, CtClass[] prams) {
+        CtBehavior mainMethod = null;
+        try {
+            CtClass[] nccs = cc.getNestedClasses();
+            //find the first method has that name and paras in nested classes
+            for (int i = 0; i < nccs.length; i++) {
+                try {
+                    mainMethod = nccs[i].getDeclaredMethod(methodAccessVar.getMethodName(), prams);
+                } catch (NotFoundException e1) {
+                    continue;
+                }
+                if (mainMethod != null) {
+                    isNestedMethod = true;
+                    declareLogger(nccs[i]);
+                    logNestedCVarValue(methodAccessVar.getVarsList(), mainMethod);
+                    rewrite(nccs[i]);
+                    break;
+                }
+            }
+        } catch (NotFoundException e1) {
+            e1.printStackTrace();
+        }
+
     }
 
 
@@ -182,29 +202,81 @@ public class ByteCodePVars extends ByteCodeP {
     private void logVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
         String qname = getMethodQualifyName(mainMethod);
         for (LineAccessVars accessVars : varsList) {
+//            System.out.println("for LineAccessVars ..."+accessVars);
             int location = accessVars.getLocation();
             try {
                 mainMethod.insertAt(location, lo.endLine(location));
                 for (MyExpString var : accessVars.getVarsList()) {
-                    try {
-                        mainMethod.insertAt(location, lo.logValStatement(var.getExpVar()));
-                    } catch (CannotCompileException e) {
-                        try{
-                            mainMethod.insertAt(location, lo.logNInitStatement(var.getExpVar()));
-                            System.err.println("CannotCompileException: location:" + accessVars.getLocation() + "var:" + lo.logValStatement(var.getExpVar()));
+//                    System.out.println("for MyExpString" );
 
-                        }catch (CannotCompileException e1) {
-                            System.err.println("location:" + location + "log:" +lo.logNInitStatement(var.getExpVar()));
+                    String log = lo.logValNotNullStatement(var.getExpVar());
+//                    System.out.println("log ..." + log);
+
+                    try {
+                        mainMethod.insertAt(location, log);
+                    } catch (CannotCompileException e) {
+                        System.err.println("CannotCompileException: location:" + location + "var:" + log);
+                        log = lo.logNInitStatement(var.getExpVar());
+                        try {
+                            mainMethod.insertAt(location, log);
+                        } catch (CannotCompileException e1) {
+                            System.err.println("CannotCompileException: location:" + location + "log:" + log);
                             e1.printStackTrace();
                         }
                     }
                 }
+//                System.out.println("end for MyExpString ..."+accessVars);
                 mainMethod.insertAt(location, lo.startLine(location, qname));
             } catch (CannotCompileException e) {
-                System.err.println("location:" + location + "log:" + lo.startLine(location, qname)+"||"+lo.endLine(location));
+                System.err.println("location:" + location + "log:" + lo.startLine(location, qname) + "||" + lo.endLine(location));
                 e.printStackTrace();
             }
         }
+//        System.out.println("end logVarValue...");
+
+    }
+
+
+    /**
+     * insert log to get the value of every accessible variable
+     *
+     * @param varsList   cluster of vars of line
+     * @param mainMethod the method get from bytecode file
+     */
+    private void logNestedCVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
+        //for very 'line' in the method
+        for (LineAccessVars accessVars : varsList) {
+//            System.out.println("for nested LineAccessVars ...");
+            int location = accessVars.getLocation();
+            try {
+                mainMethod.insertAt(location, lo.endLine(location));
+                //for every var that is accessible in the line
+                for (MyExpString var : accessVars.getVarsList()) {
+//                    System.out.println("for nested MyExpString ...");
+                    String log = lo.logConStatement(var.getExpVar(), tf.getQualifyFileName());
+                    try {
+                        mainMethod.insertAt(location, log);
+                    } catch (CannotCompileException e) {
+                        System.err.println("Nested CannotCompileException: location:" + location + "var:" + log);
+                        log = lo.logValStatement(var.getExpVar());
+                        try {
+                            mainMethod.insertAt(location, log);
+                        } catch (CannotCompileException e1) {
+
+                            System.err.println(" Nested CannotCompileException: location:"
+                                    + location + "var:" + "." + log);
+                            log = lo.logNInitStatement(var.getExpVar());
+                            mainMethod.insertAt(location, log);
+                        }
+                    }
+                }
+            } catch (CannotCompileException e) {
+                System.err.println("Nested location:" + location);
+                e.printStackTrace();
+            }
+        }
+//        System.out.println("end logNestedCVarValue...");
+
     }
 
     /**
@@ -233,41 +305,6 @@ public class ByteCodePVars extends ByteCodeP {
         sb.append(")");
         return sb.toString();
     }
-
-    /**
-     * insert log to get the value of every accessible variable
-     *
-     * @param varsList   cluster of vars of line
-     * @param mainMethod the method get from bytecode file
-     */
-    private void logNestedCVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
-        //for very 'line' in the method
-        for (LineAccessVars accessVars : varsList) {
-            int location = accessVars.getLocation();
-            try {
-                mainMethod.insertAt(location, lo.endLine(location));
-                //for every var that is accessible in the line
-                for (MyExpString var : accessVars.getVarsList()) {
-
-                    try {
-                        mainMethod.insertAt(location, lo.logConStatement(var.getExpVar(), tf.getQualifyFileName()));
-                    } catch (CannotCompileException e) {
-                        try {
-                            mainMethod.insertAt(location, lo.logValStatement(var.getExpVar()));
-                        } catch (CannotCompileException e1) {
-                            mainMethod.insertAt(location, lo.logNInitStatement(var.getExpVar()));
-                            System.err.println(" Nested CannotCompileException: location:"
-                                    + location + "var:" + "." + lo.logValStatement(var.getExpVar())+"||"+lo.logConStatement(var.getExpVar(), tf.getQualifyFileName()));
-                        }
-                    }
-                }
-            } catch (CannotCompileException e) {
-                System.err.println("Nested location:" + location);
-                e.printStackTrace();
-            }
-        }
-    }
-
 
 }
 
