@@ -4,10 +4,7 @@ import javassist.CannotCompileException;
 import javassist.CtBehavior;
 import javassist.CtClass;
 import javassist.NotFoundException;
-import polyu_af.models.LineAccessVars;
-import polyu_af.models.MyExpString;
-import polyu_af.models.MyMethod;
-import polyu_af.models.TargetFile;
+import polyu_af.models.*;
 import polyu_af.utils.FileUtils;
 
 import java.io.IOException;
@@ -120,7 +117,7 @@ public class ByteCodePVars extends ByteCodeP {
                 continue;
             } else {
                 if (!isNestedMethod) {
-                    logVarValue(methodAccessVar.getVarsList(), mainMethod);
+                    logVarValue(methodAccessVar.getLineVarsList(), mainMethod);
 
                 }
             }
@@ -181,7 +178,7 @@ public class ByteCodePVars extends ByteCodeP {
                 if (mainMethod != null) {
                     isNestedMethod = true;
                     declareLogger(nccs[i]);
-                    logNestedCVarValue(methodAccessVar.getVarsList(), mainMethod);
+                    logNestedCVarValue(methodAccessVar.getLineVarsList(), mainMethod);
                     rewrite(nccs[i]);
                     break;
                 }
@@ -195,18 +192,17 @@ public class ByteCodePVars extends ByteCodeP {
 
     /**
      * insert log to get the value of every accessible variable
-     *
-     * @param varsList   cluster of vars of line
+     *  @param varsList   cluster of vars of line
      * @param mainMethod the method get from bytecode file
      */
-    private void logVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
+    private void logVarValue(List<LineVars> varsList, CtBehavior mainMethod) {
         String qname = getMethodQualifyName(mainMethod);
-        for (LineAccessVars accessVars : varsList) {
-//            System.out.println("for LineAccessVars ..."+accessVars);
+        for (LineVars accessVars : varsList) {
+//            System.out.println("for LineVars ..."+accessVars);
             int location = accessVars.getLocation();
             try {
                 mainMethod.insertAt(location, lo.endLine(location));
-                for (MyExpString var : accessVars.getVarsList()) {
+                for (MyExp var : accessVars.getVarsList()) {
 //                    System.out.println("for MyExpString" );
 
                     String log = lo.logValNotNullStatement(var.getExpVar());
@@ -243,15 +239,15 @@ public class ByteCodePVars extends ByteCodeP {
      * @param varsList   cluster of vars of line
      * @param mainMethod the method get from bytecode file
      */
-    private void logNestedCVarValue(List<LineAccessVars> varsList, CtBehavior mainMethod) {
+    private void logNestedCVarValue(List<LineVars> varsList, CtBehavior mainMethod) {
         //for very 'line' in the method
-        for (LineAccessVars accessVars : varsList) {
-//            System.out.println("for nested LineAccessVars ...");
+        for (LineVars accessVars : varsList) {
+//            System.out.println("for nested LineVars ...");
             int location = accessVars.getLocation();
             try {
                 mainMethod.insertAt(location, lo.endLine(location));
                 //for every var that is accessible in the line
-                for (MyExpString var : accessVars.getVarsList()) {
+                for (MyExp var : accessVars.getVarsList()) {
 //                    System.out.println("for nested MyExpString ...");
                     String log = lo.logConStatement(var.getExpVar(), tf.getQualifyFileName());
                     try {
